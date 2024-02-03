@@ -1,7 +1,7 @@
-const fs = require("fs");
+// const fs = require("fs");
 const File = require("../models/File.js");
 const { Readable } = require("stream");
-const path = require("path");
+// const path = require("path");
 
 const search = async (req, res) => {
   try {
@@ -13,70 +13,126 @@ const search = async (req, res) => {
         message: "Keyword is required",
       });
     }
+    const item_per_page = 30;
+    let page = 1;
+    // const skip = (page - 1) * item_per_page;
 
-    const result = await File.find({
-      data: {
-        $elemMatch: {
-          $regex: new RegExp(keyword, "i"),
-        },
-      },
-    });
-    // const filePath = "search_results.txt";
-    //
-    // const pat = path.join(__dirname, `../${filePath}`);
-    // const fileStream = fs.createWriteStream(filePath);
-    //
-    // result.forEach((result) => {
-    //   fileStream.write(`${result.name}\n${JSON.stringify(result.data)}\n\n`);
-    // });
-    //
-    // fileStream.end();
-    //
-    // fileStream.on("finish", () => {
-    //   const readStream = fs.createReadStream(pat);
-    //   res.setHeader(
-    //     "Content-disposition",
-    //     `attachment; filename=search_results.txt`,
-    //   );
-    //   res.setHeader("Content-type", "text/html");
-    //   readStream.pipe(res);
-    //
-    //   readStream.on("close", () => {
-    //     console.log("File stream closed.");
-    //     // fs.unlink(filePath, (err) => {
-    //     //   if (err) {
-    //     //     console.error("Error deleting file:", err);
-    //     //   } else {
-    //     //     console.log("File deleted successfully.");
-    //     //   }
-    //     // });
-    //   });
-    // });
+    // const result = File.find({
+    //   data: {
+    //     $elemMatch: {
+    //       $regex: new RegExp(keyword, "i"),
+    //     },
+    //   },
+    // })
+    //   .skip(skip)
+    //   .limit(item_per_page)
+    //   .cursor();
 
-    //trying to  make this even fast iim gona stream the res derectly to the user without making file in the system
-
-    const textData = result
-      .map((entry) => `${entry.name}\n${JSON.stringify(entry.data)}\n\n`)
-      .join("");
+    // const stream = result.cursor();
 
     res.setHeader("Content-disposition", "attachment; filename=file.txt");
     res.setHeader("Content-type", "text/plain");
-    const chunkSize = 16;
-    const readStream = Readable.from(textData, { highWaterMark: chunkSize });
+    // stream.on("data", (entry) => {
+    //   const data = `${entry.name}\n${JSON.stringify(entry.data)}\n\n`;
+    //   res.write(data);
+    // });
+    //
+    // stream.on("end", () => {
+    //   res.end();
+    // });
+    //
+    // stream.on("error", (error) => {
+    //   console.error("Error during download:", error);
+    //   res.status(500).end("Internal server error");
+    // });
+    // const sendNChunk = async () => {
+    //   try {
+    //     const skip = (page - 1) * item_per_page;
+    //
+    //     const result = await File.find({
+    //       data: {
+    //         $elemMatch: {
+    //           $regex: new RegExp(keyword, "i"),
+    //         },
+    //       },
+    //     })
+    //       .skip(skip)
+    //       .limit(item_per_page);
+    //
+    //     if (result.length > 0) {
+    //       let data = "";
+    //
+    //       for (const entry of result) {
+    //         data += `${entry.name}\n${JSON.stringify(entry.data)}\n\n`;
+    //       }
+    //
+    //       res.write(data);
+    //
+    //       page++;
+    //
+    //       setImmediate(sendNChunk);
+    //     } else {
+    //       res.end();
+    //     }
+    //   } catch (error) {
+    //     console.error("Error during download:", error);
+    //     res.status(500).end("Internal server error");
+    //   }
+    // };
+    //
+    // setImmediate(sendNChunk);
+    // const textData = result
+    //   .map((entry) => `${entry.name}\n${JSON.stringify(entry.data)}\n\n`)
+    //   .join("");
+    //
+    // const chunkSize = 16;
+    // const readStream = Readable.from(textData, { highWaterMark: chunkSize });
+    //
+    // readStream.pipe(res);
+    //
+    // readStream.on("end", () => {
+    //   console.log("File stream ended.");
+    // });
+    //
+    // readStream.on("close", () => {
+    //   console.log("File stream closed.");
+    // });
+    // readStream.on("error", (err) => {
+    //   console.error(err);
+    //   res.status(500).end("server err");
+    // });
+    const readStream = new Readable({
+      objectMode: true,
+      async read() {
+        try {
+          const skip = (page - 1) * item_per_page;
 
+          const result = await File.find({
+            data: {
+              $elemMatch: {
+                $regex: new RegExp(keyword, "i"),
+              },
+            },
+          })
+            .skip(skip)
+            .limit(item_per_page);
+
+          if (result.length > 0) {
+            result.forEach((entry) => {
+              this.push(`${entry.name}\n${JSON.stringify(entry.data)}\n\n`);
+            });
+
+            page++;
+          } else {
+            this.push(null);
+          }
+        } catch (error) {
+          console.error(error);
+          res.status(500).end(" server error");
+        }
+      },
+    });
     readStream.pipe(res);
-
-    readStream.on("end", () => {
-      console.log("File stream ended.");
-    });
-
-    readStream.on("close", () => {
-      console.log("File stream closed.");
-    });
-    readStream.on("error", (err) => {
-      console.error(err);
-      res.status(500).end("server err");
-    });
   } catch (error) {
     console.error("Error in search:", error);
     res.status(500).json({ error: " server error" });
