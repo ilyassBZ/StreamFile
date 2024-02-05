@@ -12,15 +12,12 @@ const UploadForm = ({ progress, setProgress }) => {
     },
   });
   const handleFileChange = (e) => {
-    setProgress(0);
     const selectedFile = e.target.files[0];
     setFile(selectedFile);
     handleFormSubmit(selectedFile);
     setFile("");
   };
   const handleFormSubmit = async (file) => {
-    setProgress(0);
-
     const formData = new FormData();
     formData.append("file", file);
 

@@ -30,16 +30,19 @@ app.use(
 );
 
 require("dotenv").config();
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "./upload");
-  },
-  filename: (req, file, cb) => {
-    cb(null, file.originalname);
-  },
-});
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "./upload");
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, file.originalname);
+//   },
+// });
+//
+// const upload = multer({ storage: storage });
 
-const upload = multer({ storage: storage });
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 app.get("/", async (req, res) => {
   res.status(200).json({

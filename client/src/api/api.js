@@ -1,11 +1,32 @@
 import API_URL from "../utils/api";
 import axios from "axios";
-import { useQuery } from "react-query";
+// import { useQuery } from "react-query";
 
 export const addFile = async (fileData) => {
+  const chunkSize = 100;
   try {
-    const response = await axios.post(`${API_URL}/upload`, fileData);
-    return response.data;
+    const file = fileData.get("file");
+    const totalChunks = Math.ceil(file.size / chunkSize);
+    const sendChunk = async (start, end) => {
+      const formData = new FormData();
+      const blobSlice = file.slice(start, end);
+      formData.append("file", blobSlice, file.name);
+      console.log(formData);
+      try {
+        await axios.post(`${API_URL}/upload`, formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+      } catch (error) {
+        console.error("Error uploading chunk:", error);
+      }
+    };
+    for (let i = 0; i < totalChunks; i++) {
+      const start = i * chunkSize;
+      const end = (i + 1) * chunkSize;
+      await sendChunk(start, end);
+    }
   } catch (error) {
     throw new Error(error);
   }
