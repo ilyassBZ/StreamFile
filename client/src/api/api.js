@@ -3,7 +3,7 @@ import axios from "axios";
 // import { useQuery } from "react-query";
 
 export const addFile = async (fileData) => {
-  const chunkSize = 100;
+  const chunkSize = 1024;
   try {
     const file = fileData.get("file");
     const totalChunks = Math.ceil(file.size / chunkSize);
